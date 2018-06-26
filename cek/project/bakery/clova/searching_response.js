@@ -1,8 +1,8 @@
-const RAW_DATA_SET = require('../clova/raw_data_set');
+const RAW_DATA_SET = require('../clova_dev/raw_data_set');
 
 /*
  * 1. RAW_DATA_SET.RESPONSE_LIST : response data set
- *    ex) RAW_DATA_SET.RESPONSE_LIST["GuideCake"]; // response data list for guide cake
+ *    ex) RAW_DATA_SET.RESPONSE_LIST['GuideCake']; // response data list for guide cake
  *
  * 2. RAW_DATA_SET.EMOTION_LIST : emotion data set
  * 
@@ -10,70 +10,136 @@ const RAW_DATA_SET = require('../clova/raw_data_set');
  *
  */
 
-function searchResponseData(req_body) {
-	console.log("\n");
-	console.log(req_body);
-	// search response data
-	var req_intent = req_body.request.intent;
-	var response_data = { "version": req_body.version, "sessionAttributes": {}, "response": JSON.parse(RAW_DATA_SET.RESPONSE_TEMPLATE) };
-	var date = new Date();
-	//var date = now.toFormat('YYYY-MM-DD HH24:MI:SS'); 
+function searchResponseData(reqBody) {
+	//console.log(reqBody);
+	console.log('\n' + JSON.stringify(reqBody.request, null, 2));
 
-	if (req_body.request.intent.slots == null || JSON.stringify(req_body.request.intent.slots) == '{}') {
-		console.log("[" + date + "] ## Error ## slots field is empty.");
-		response_data.response.card = RAW_DATA_SET.ERROR_RESPONSE_LIST[Math.floor(Math.random()*RAW_DATA_SET.ERROR_RESPONSE_LIST.length)];
-		return response_data;
+	const reqIntent = reqBody.request.intent.name;
+	const reqReference = 'parisbakery.' + reqIntent;
+	const responseData = { 'version': reqBody.version, 'sessionAttributes': {}, 'response': JSON.parse(RAW_DATA_SET.RESPONSE_TEMPLATE) };
+	const date = new Date();
+	let slot;
+
+	if (!!!reqBody.request.intent.slots) {
+		console.log('[' + date + '] ## Error ## slots field is empty.');
+		return getErrorResponse(responseData);
 	}
 
-	var request_cake_catetory = req_body.request.intent.slots.CAKE_CATEGORY;
-	var request_cake_type = req_body.request.intent.slots.CAKE_TYPE;
-	var request_cake_kind = req_body.request.intent.slots.CAKE_TYPE_KIND;
+	switch(reqIntent) {
+		case 'PlayGame':
+			const requestPlayTarget = reqBody.request.intent.slots.PLAY_TARGET;
+			if(!!requestPlayTarget) {
+				slot = requestPlayTarget.value;
+			}
+			break;
 
-	if(request_cake_type != undefined && request_cake_catetory != undefined) {
-		if(request_cake_kind != undefined) {
-			var slot = request_cake_kind.value + "|" + request_cake_catetory.value;
-		} else {
-			var slot = request_cake_type.value + "|" + request_cake_catetory.value;
-		}
+		case 'RequestInfotainment':
+			const requestInfotainmentType = reqBody.request.intent.slots.INFOTAINMENT_TYPE;
+			if(!!requestInfotainmentType) {
+				slot = requestInfotainmentType.value + (Math.floor(Math.random()*3) + 1);
+			}
+			break;
 
-		console.log("[" + date + "] ## intent : " + req_intent.name + " [" + slot + "] ");
+		case 'GuideCake':
+			const requestCakeCatetory = reqBody.request.intent.slots.CAKE_CATEGORY;
+			const requestCakeType = reqBody.request.intent.slots.CAKE_TYPE;
+			const requestCakeKind = reqBody.request.intent.slots.CAKE_TYPE_KIND;
 
-		for(var inx=0; inx<RAW_DATA_SET.RESPONSE_LIST[req_intent.name].length; inx++) {
-		    if(RAW_DATA_SET.RESPONSE_LIST[req_intent.name][inx].slot == slot) {
-				response_data.response.card = RAW_DATA_SET.RESPONSE_LIST[req_intent.name][inx].value;
+			if(!!requestCakeType && !!requestCakeCatetory) {
+				if(!!requestCakeKind) {
+					slot = requestCakeKind.value + '|' + requestCakeCatetory.value;
+				} else {
+					slot = requestCakeType.value + '|' + requestCakeCatetory.value;
+				}
+			}
+			break;
 
-				for(var jnx=0; jnx<response_data.response.card.thumbImageUrlList.length; jnx++) {
-					var emotion_id = response_data.response.card.thumbImageUrlList[jnx].referenceUrl.value;
-					if(emotion_id != '') {
-						var emotion = getEmotion(emotion_id);
+		case 'GuideBread':
+			const requestBreadCatetory = reqBody.request.intent.slots.BREAD_CATEGORY;
+			const requestBreadType = reqBody.request.intent.slots.BREAD_TYPE;
+			const requestBreadKind = reqBody.request.intent.slots.BREAD_TYPE_KIND;
 
-						if(emotion.face != undefined && emotion.motion != undefined) {
-							//console.log(" => " + emotion.face + " / " + emotion.motion);
-							response_data.response.card.thumbImageUrlList[jnx].referenceUrl.value = emotion.face; // face
-							response_data.response.card.thumbImageUrlList[jnx].thumbImageUrl.value = emotion.motion; // motion
+			if(!!requestBreadType) {
+				if(!!requestBreadCatetory) {
+					if(!!requestBreadKind) {
+						slot = requestBreadKind.value + '|' + requestBreadCatetory.value;
+					} else {
+						slot = requestBreadType.value + '|' + requestBreadCatetory.value;
+					}
+				} else {
+					slot = requestBreadType.value;
+				}
+			}
+			break;
+
+		case 'GuideFAQ':
+			const requestFaqType = reqBody.request.intent.slots.FAQ_TYPE;
+
+			if(!!requestFaqType) {
+				slot = requestFaqType.value;
+			}
+			
+			break;
+
+		case 'GuideGift':
+			const requestGiftCatetory = reqBody.request.intent.slots.GIFT_CATEGORY;
+			const requestGiftType = reqBody.request.intent.slots.GIFT_TYPE;
+
+			if(!!requestGiftCatetory) {
+				if(!!requestGiftType) {
+					slot = requestGiftType.value + '|' + requestGiftCatetory.value;
+				} else {
+					slot = requestGiftCatetory.value;
+				}
+			}
+			break;
+	}
+
+	if(!!slot) {
+		console.log('[' + date + '] ## intent : ' + reqIntent + ' [' + slot + '] ');
+		for(let inx=0, res; res = RAW_DATA_SET.RESPONSE_LIST[reqIntent][inx]; inx++) {
+
+		    if(res.slot.indexOf(slot) >= 0) {
+				responseData.response.card = res.value;
+
+				for(let jnx=0; jnx<responseData.response.card.thumbImageUrlList.length; jnx++) {
+					responseData.response.card.thumbImageUrlList[jnx].imageReference.value = reqReference;
+					const emotionId = responseData.response.card.thumbImageUrlList[jnx].referenceUrl.value;
+					if(!!emotionId) {
+						const emotion = getEmotion(emotionId);
+						if(!!emotion && !!emotion.face && !!emotion.motion) {
+							//console.log(' => ' + emotion.face + ' / ' + emotion.motion);
+							responseData.response.card.thumbImageUrlList[jnx].referenceUrl.value = emotion.face; // face
+							responseData.response.card.thumbImageUrlList[jnx].thumbImageUrl.value = emotion.motion; // motion
 						}
+					} else {
+						responseData.response.card.thumbImageUrlList[jnx].thumbImageUrl.value = 
+							RAW_DATA_SET.DEFAULT_MOTION_LIST[Math.floor(Math.random()*RAW_DATA_SET.DEFAULT_MOTION_LIST.length)];; // motion
 					}
 				}
 
-				break;//return response_data;
+				break;
 		    }
 		}
 	} else {
-		response_data.response.card = RAW_DATA_SET.ERROR_RESPONSE_LIST[Math.floor(Math.random()*RAW_DATA_SET.ERROR_RESPONSE_LIST.length)];
-		console.log("[" + date + "] ## Error ## request_cake_type or request_cake_catetory is undefined. type:" + request_cake_type + "/category:" + request_cake_catetory);
+		console.log('[' + date + '] ## Error ## Invalid slot data');
+		return getErrorResponse(responseData);
 	}
-	
-	return response_data;
+
+	if(JSON.stringify(responseData.response.card) === '{}') {
+		console.log('[' + date + '] ## Error ## slot is not matched');
+		return getErrorResponse(responseData);
+	}
+
+	return responseData;
 }
 
-function getEmotion(emotion_id) {
-	var emotion = {}
-	for(var inx=0; inx<RAW_DATA_SET.EMOTION_LIST.length; inx++) {
-		if(RAW_DATA_SET.EMOTION_LIST[inx].id == emotion_id) {
-			var num = Math.floor(Math.random()*3);
-			emotion = RAW_DATA_SET.EMOTION_LIST[inx].value[num];
-			console.log("  ## service id : " + emotion_id);
-			//console.log(" ## Service ID :" + emotion_id + " / " + emotion.face + " / " + emotion.motion);
+function getEmotion(emotionId) {
+	let emotion = {}
+	for(let inx=0, emotionList; emotionList = RAW_DATA_SET.EMOTION_LIST[inx]; inx++) {
+		if(emotionList.id === emotionId) {
+			emotion = emotionList.value[Math.floor(Math.random()*emotionList.value.length)];
+			//console.log('  ## service id : ' + emotionId);
 			break;
 		}
 	}
@@ -81,6 +147,11 @@ function getEmotion(emotion_id) {
 	return emotion;
 }
 
-module.exports.searchResponseData = function(req_body) {
-	return searchResponseData(req_body);
+function getErrorResponse(responseData) {
+	responseData.response.card = RAW_DATA_SET.ERROR_RESPONSE_LIST[Math.floor(Math.random()*RAW_DATA_SET.ERROR_RESPONSE_LIST.length)];
+	return responseData;
+}
+
+module.exports.searchResponseData = function(reqBody) {
+	return searchResponseData(reqBody);
 }
