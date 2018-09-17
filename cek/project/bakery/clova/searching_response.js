@@ -70,6 +70,7 @@ function searchResponseData(reqBody) {
 				slot = requestCakeCategory.value;
 				logger.verbose('## Error ## Invalid slot. CakeType is empty. [' + slot + ']');
 			}
+
 			break;
 
 		case 'GuideBread':
@@ -122,6 +123,10 @@ function searchResponseData(reqBody) {
 			logger.verbose('## Error ## Invalid intent [' + intent + ']');
 			logger.info('\t' + deviceId + '\t' + intent + '\t' + serviceId + '\t' + '[Error] Invalid intent [' + intent + ']');
 			return getErrorResponse(responseData);
+	}
+
+	if(~RAW_DATA_SET.RANDOM_SCENARIO_LIST.indexOf(slot)) {
+		slot = slot.split('|')[0] + (Math.floor(Math.random()*3) + 1) + '|' + slot.split('|')[1];
 	}
 
 	if(!!slot) {
